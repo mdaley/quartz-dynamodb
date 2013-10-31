@@ -1,5 +1,7 @@
 # quartz-dynamodb
 
+Does nothing yet. Work-in-progress...
+
 A library that allows quartz and quartzite to be backed by AWS DynamoDB.
 
 ## Usage
