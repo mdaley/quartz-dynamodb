@@ -5,6 +5,8 @@
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :dependencies [[org.clojure/clojure "1.5.1"]
                  [com.amazonaws/aws-java-sdk "1.6.2"]
+                 [ch.qos.logback/logback-classic "1.0.13"]
+                 [environ "0.4.0"]
                  [joda-time/joda-time "2.3"]
                  ;;[clj-time "0.6.0"]
                  [midje "1.5.1"]
