@@ -3,7 +3,8 @@
             [midje.sweet :refer :all]
             [quartz-dynamodb.core :refer :all])
   (:import com.mdaley.quartz.dynamodb.DynamoDbJobStore
-           org.quartz.SchedulerConfigException))
+           org.quartz.SchedulerConfigException
+           org.quartz.JobBuilder))
 
 (def dynamo-endpoint "http://dynamodb.us-east-1.amazonaws.com")
 (def quartz-prefix "Q_")
@@ -20,3 +21,14 @@
 (fact "Creating dynamodb job store fails if details aren't set"
       (let [instance (DynamoDbJobStore.)]
         (.initialize instance nil nil) => (throws SchedulerConfigException)))
+
+(fact "Create a new job"
+      (let [instance (DynamoDbJobStore.)
+            job (-> (JobBuilder/newJob)
+                    (.withIdentity "myjob" "mygroup")
+                    (.build))]
+        (.setDynamoDbDetails instance dynamo-endpoint quartz-prefix)
+        (.initialize instance nil nil)
+        ()
+        (.storeJob instance job true)
+        (instance? DynamoDbJobStore instance) => true))

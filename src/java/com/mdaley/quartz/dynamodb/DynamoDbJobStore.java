@@ -1,6 +1,7 @@
 package com.mdaley.quartz.dynamodb;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -9,12 +10,14 @@ import java.util.Set;
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.services.dynamodbv2.AmazonDynamoDBClient;
 import com.amazonaws.services.dynamodbv2.model.AttributeDefinition;
+import com.amazonaws.services.dynamodbv2.model.AttributeValue;
 import com.amazonaws.services.dynamodbv2.model.CreateTableRequest;
 import com.amazonaws.services.dynamodbv2.model.DescribeTableRequest;
 import com.amazonaws.services.dynamodbv2.model.DescribeTableResult;
 import com.amazonaws.services.dynamodbv2.model.KeySchemaElement;
 import com.amazonaws.services.dynamodbv2.model.KeyType;
 import com.amazonaws.services.dynamodbv2.model.ProvisionedThroughput;
+import com.amazonaws.services.dynamodbv2.model.PutItemRequest;
 import com.amazonaws.services.dynamodbv2.model.ResourceNotFoundException;
 import com.amazonaws.services.dynamodbv2.model.ScalarAttributeType;
 import com.amazonaws.services.dynamodbv2.model.TableDescription;
@@ -200,6 +203,21 @@ public class DynamoDbJobStore implements JobStore, Constants {
         }
     }
 
+    private void storeJobInDynamoDb(JobDetail job, boolean replaceExisting) {
+        System.out.println("JOB = " + job.toString());
+        JobKey key = job.getKey();
+        Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
+        item.put("name", new AttributeValue(key.getName()));
+        item.put("group", new AttributeValue(key.getGroup()));
+        item.put("description", new AttributeValue(job.getDescription()));
+
+        PutItemRequest request = new PutItemRequest()
+                .withTableName(quartzPrefix + "jobs")
+                .withItem(item);
+
+        client.putItem(request);
+    }
+
     @Override
     public void schedulerStarted() throws SchedulerException {
         //To change body of implemented methods use File | Settings | File Templates.
@@ -241,8 +259,8 @@ public class DynamoDbJobStore implements JobStore, Constants {
     }
 
     @Override
-    public void storeJob(JobDetail jobDetail, boolean b) throws ObjectAlreadyExistsException, JobPersistenceException {
-        //To change body of implemented methods use File | Settings | File Templates.
+    public void storeJob(JobDetail jobDetail, boolean replaceExisting) throws ObjectAlreadyExistsException, JobPersistenceException {
+        storeJobInDynamoDb(jobDetail, replaceExisting);
     }
 
     @Override
