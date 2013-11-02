@@ -69,10 +69,10 @@ public class DynamoDbJobStore implements JobStore, Constants {
 
         createClient();
 
-        initializeTables();
+        ensureTables();
     }
 
-    private void initializeTables() {
+    private void ensureTables() {
         initializeHashAndRangeTable("jobs", "name", "group");
         initializeHashAndRangeTable("triggers", "name", "group");
         initializeHashTable("calendars", "name");
@@ -83,8 +83,9 @@ public class DynamoDbJobStore implements JobStore, Constants {
 
     private void initializeHashAndRangeTable(String name, String hashName, String rangeName) {
         String tableName = quartzPrefix + name;
-        log.info(String.format("Creating table '%s'.", tableName));
+
         if (!tableExists(tableName)) {
+            log.info(String.format("Creating table '%s' with hash and range index.", tableName));
             CreateTableRequest request = new CreateTableRequest()
                     .withTableName(tableName)
                     .withKeySchema(
@@ -98,13 +99,16 @@ public class DynamoDbJobStore implements JobStore, Constants {
             client.createTable(request);
 
             waitForTable(tableName);
+        } else {
+            log.info(String.format("Table '%s' already exists.", tableName));
         }
     }
 
     private void initializeHashTable(String name, String hashName) {
         String tableName = quartzPrefix + name;
-        log.info(String.format("Creating table '%s'.", tableName));
+
         if (!tableExists(tableName)) {
+            log.info(String.format("Creating table '%s' with hash index.", tableName));
             CreateTableRequest request = new CreateTableRequest()
                     .withTableName(tableName)
                     .withKeySchema(
@@ -116,6 +120,15 @@ public class DynamoDbJobStore implements JobStore, Constants {
             client.createTable(request);
 
             waitForTable(tableName);
+        } else {
+            log.info(String.format("Table '%s' already exists.", tableName));
+        }
+    }
+
+    private void sleep(long millis) {
+        try {Thread.sleep(millis);
+        } catch (Exception e) {
+            // nop
         }
     }
 
@@ -124,10 +137,7 @@ public class DynamoDbJobStore implements JobStore, Constants {
         long startTime = System.currentTimeMillis();
         long endTime = startTime + (10 * 60 * 1000);
         while (System.currentTimeMillis() < endTime) {
-            try {Thread.sleep(1000 * 20);
-            } catch (Exception e) {
-                // nop
-            }
+            sleep(1000 * 20);
             try {
                 DescribeTableRequest request = new DescribeTableRequest().withTableName(name);
                 TableDescription tableDescription = client.describeTable(request).getTable();
@@ -152,15 +162,6 @@ public class DynamoDbJobStore implements JobStore, Constants {
         }
 
         return true;
-    }
-
-    private void initializeTable(String name) {
-        DescribeTableRequest request = new DescribeTableRequest().withTableName(name);
-        try {
-            DescribeTableResult result = client.describeTable(request);
-        } catch (ResourceNotFoundException e) {
-            log.info("Table '" + name + "' not found.");
-        }
     }
 
     private void createClient() {
@@ -192,10 +193,6 @@ public class DynamoDbJobStore implements JobStore, Constants {
         }
     }
 
-    public void setDynamoDbDetails(String dynamoDbUrl) {
-        setDynamoDbDetails(dynamoDbUrl, null);
-    }
-
     public void setDynamoDbDetails(String dynamoDbUrl, String dynamoDbTablePrefix) {
         this.dynamoDbUrl = dynamoDbUrl;
         if (dynamoDbTablePrefix != null) {
@@ -204,7 +201,7 @@ public class DynamoDbJobStore implements JobStore, Constants {
     }
 
     private void storeJobInDynamoDb(JobDetail job, boolean replaceExisting) {
-        System.out.println("JOB = " + job.toString());
+
         JobKey key = job.getKey();
         Map<String, AttributeValue> item = new HashMap<String, AttributeValue>();
         item.put("name", new AttributeValue(key.getName()));
